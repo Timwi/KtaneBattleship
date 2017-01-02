@@ -357,7 +357,7 @@ MonoBehaviour:
   Bomb: {fileID: 11489324}
   Module: {fileID: 11429752}
   Audio: {fileID: 11496072}
-  TheParent: {fileID: 11420650}
+  MainSelectable: {fileID: 11420650}
   SquareMesh: {fileID: 4300002, guid: e2b8ea91d807bbc4b9d8e79f7de6ae40, type: 3}
   HighlightMesh: {fileID: 4300000, guid: 3407fb5d3bea97f42883b72c73184594, type: 3}
   SquareMaterial: {fileID: 2100000, guid: 172a6fb9be8ba1744aed05593fc73b28, type: 2}
