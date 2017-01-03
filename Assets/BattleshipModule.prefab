@@ -358,20 +358,16 @@ MonoBehaviour:
   Module: {fileID: 11429752}
   Audio: {fileID: 11496072}
   MainSelectable: {fileID: 11420650}
-  SquareMesh: {fileID: 4300002, guid: e2b8ea91d807bbc4b9d8e79f7de6ae40, type: 3}
-  HighlightMesh: {fileID: 4300000, guid: 3407fb5d3bea97f42883b72c73184594, type: 3}
-  SquareMaterial: {fileID: 2100000, guid: 172a6fb9be8ba1744aed05593fc73b28, type: 2}
-  TextFont: {fileID: 12800000, guid: 31d12338b88473d4184d8b71a7ff5af8, type: 3}
-  TextHighlightMesh: {fileID: 4300000, guid: 31b1f27fc03de814581e4885c615b5a0, type: 3}
-  TextMaterial: {fileID: 2100000, guid: 057131d4afe3e2e48a9e1da31840a753, type: 2}
-  Buttons:
-  - {fileID: 114000011809839786}
-  - {fileID: 114000010928112558}
-  - {fileID: 114000010327772136}
-  ButtonObjects:
-  - {fileID: 4000013551152728}
-  - {fileID: 4000013759686612}
-  - {fileID: 4000012754470014}
+  PlaneMesh: {fileID: 10209, guid: 0000000000000000e000000000000000, type: 0}
+  RadarButton: {fileID: 114000011809839786}
+  WaterButton: {fileID: 114000010928112558}
+  TorpedoButton: {fileID: 114000010327772136}
+  RadarButtonObject: {fileID: 4000013551152728}
+  WaterButtonObject: {fileID: 4000013759686612}
+  TorpedoButtonObject: {fileID: 4000012754470014}
+  RadarLabel: {fileID: 102000012584138304}
+  WaterLabel: {fileID: 102000011544920122}
+  TorpedoLabel: {fileID: 102000013125004804}
 --- !u!114 &11489324
 MonoBehaviour:
   m_ObjectHideFlags: 1

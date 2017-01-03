@@ -18,68 +18,219 @@ public class BattleshipModule : MonoBehaviour
     public KMAudio Audio;
 
     public KMSelectable MainSelectable;
-    public Mesh SquareMesh, HighlightMesh;
-    public Material SquareMaterial;
+    public Mesh PlaneMesh;
 
-    public Font TextFont;
-    public Mesh TextHighlightMesh;
-    public Material TextMaterial;
+    public KMSelectable RadarButton, WaterButton, TorpedoButton;
+    public Transform RadarButtonObject, WaterButtonObject, TorpedoButtonObject;
+    public TextMesh RadarLabel, WaterLabel, TorpedoLabel;
 
-    public KMSelectable[] Buttons;
-    public Transform[] ButtonObjects;
-
-    private KMSelectable[] _grid = new KMSelectable[36];
-    private KMSelectable[] _columns = new KMSelectable[6];
-    private KMSelectable[] _rows = new KMSelectable[6];
+    private TextMesh[] _columns = new TextMesh[6];
+    private TextMesh[] _rows = new TextMesh[6];
 
     private KMSelectable _selectedButton;
     private Transform _selectedButtonObject;
     private Coroutine _buttonCoroutine;
-    private bool _isSolved;
+    private bool _isSolved, _isExploded;
     private int[] _safeLocations;
     private bool[][] _solution;
+    private GameObject[][] _graphics;
+    private string[][] _graphicNames;
     private bool[][] _revealed;
 
     void Start()
     {
-        for (int row = 0; row < 6; row++)
+        for (int r = 0; r < 6; r++)
         {
-            _rows[row] = MainSelectable.transform.FindChild("Row " + (char) ('1' + row)).GetComponent<KMSelectable>();
-            for (int col = 0; col < 6; col++)
-                _grid[row * 6 + col] = MainSelectable.transform.FindChild("Square " + (char) ('A' + col) + (char) ('1' + row)).GetComponent<KMSelectable>();
+            SetRowHandler(MainSelectable.transform.FindChild("Row " + (char) ('1' + r)), r);
+            for (int c = 0; c < 6; c++)
+                SetCellHandler(MainSelectable.transform.FindChild("Square " + (char) ('A' + c) + (char) ('1' + r)).GetComponent<KMSelectable>(), c, r);
         }
-        for (int col = 0; col < 6; col++)
-            _columns[col] = MainSelectable.transform.FindChild("Col " + (char) ('A' + col)).GetComponent<KMSelectable>();
+        for (int c = 0; c < 6; c++)
+            SetColHandler(MainSelectable.transform.FindChild("Col " + (char) ('A' + c)), c);
 
         _isSolved = false;
+        _isExploded = false;
+        _safeLocations = null;
+        _solution = null;
+        _revealed = Ut.NewArray<bool>(6, 6);
 
-        for (int i = 0; i < Buttons.Length; i++)
-        {
-            var j = i;
-            Buttons[i].OnInteract = delegate { HandleButton(Buttons[j], ButtonObjects[j]); return false; };
-        }
+        SetButtonHandler(RadarButton, RadarButtonObject, RadarLabel);
+        SetButtonHandler(WaterButton, WaterButtonObject, WaterLabel);
+        SetButtonHandler(TorpedoButton, TorpedoButtonObject, TorpedoLabel);
 
-        Module.OnActivate = ActivateModule;
+        Module.OnActivate = GeneratePuzzle;
+        Bomb.OnBombExploded = delegate { _isExploded = true; };
     }
 
-    private void HandleButton(KMSelectable button, Transform buttonObject)
+    private void SetRowHandler(Transform obj, int row)
     {
-        if (_selectedButton == button || _buttonCoroutine != null || _safeLocations == null || _isSolved)
-            return;
+        var sel = obj.GetComponent<KMSelectable>();
+        _rows[row] = obj.GetComponent<TextMesh>();
 
-        button.AddInteractionPunch();
-        Audio.PlaySoundAtTransform("ButtonDown", buttonObject);
+        sel.OnInteract = delegate
+        {
+            sel.AddInteractionPunch();
+            if (_safeLocations == null || _isSolved)
+                return false;
 
-        _buttonCoroutine = StartCoroutine(moveButtons(_selectedButtonObject, buttonObject));
-        _selectedButton = button;
-        _selectedButtonObject = buttonObject;
+            if (Enumerable.Range(0, 6).Any(c => !_revealed[c][row] && _solution[c][row] == true))
+            {
+                var col = Enumerable.Range(0, 6).First(c => !_revealed[c][row] && _solution[c][row] == true);
+                Debug.LogFormat("[Battleship] Used Water on Row {1}, but there is an unrevealed ship piece at {0}{1}.", (char) ('A' + col), (char) ('1' + row));
+                Module.HandleStrike();
+            }
+            else
+            {
+                for (int col = 0; col < 6; col++)
+                    _revealed[col][row] = true;
+                UpdateRevealedGraphics();
+            }
+
+            CheckSolved();
+            return false;
+        };
     }
 
-    private IEnumerator moveButtons(Transform prev, Transform next)
+    private void SetColHandler(Transform obj, int col)
+    {
+        var sel = obj.GetComponent<KMSelectable>();
+        _columns[col] = obj.GetComponent<TextMesh>();
+
+        sel.OnInteract = delegate
+        {
+            sel.AddInteractionPunch();
+            if (_safeLocations == null || _isSolved)
+                return false;
+
+            if (Enumerable.Range(0, 6).Any(r => !_revealed[col][r] && _solution[col][r] == true))
+            {
+                var row = Enumerable.Range(0, 6).First(r => !_revealed[col][r] && _solution[col][r] == true);
+                Debug.LogFormat("[Battleship] Used Water on Column {0}, but there is an unrevealed ship piece at {0}{1}.", (char) ('A' + col), (char) ('1' + row));
+                Module.HandleStrike();
+            }
+            else
+            {
+                for (int row = 0; row < 6; row++)
+                    _revealed[col][row] = true;
+                UpdateRevealedGraphics();
+            }
+
+            CheckSolved();
+            return false;
+        };
+    }
+
+    private void SetCellHandler(KMSelectable sel, int col, int row)
+    {
+        sel.OnInteract = delegate
+        {
+            sel.AddInteractionPunch();
+            if (_selectedButton == null || _safeLocations == null || _isSolved)
+                return false;
+
+            Reveal(col, row);
+
+            if (_selectedButton == RadarButton && !_safeLocations.Contains(col + 6 * row))
+            {
+                Debug.LogFormat("[Battleship] Used Radar on {0}{1}, which is not a safe location.", (char) ('A' + col), (char) ('1' + row));
+                Module.HandleStrike();
+            }
+            else if (_selectedButton == WaterButton && _solution[col][row] != false)
+            {
+                Debug.LogFormat("[Battleship] Used Water on {0}{1}, which is not water.", (char) ('A' + col), (char) ('1' + row));
+                Module.HandleStrike();
+            }
+            else if (_selectedButton == TorpedoButton && _solution[col][row] != true)
+            {
+                Debug.LogFormat("[Battleship] Used Torpedo on {0}{1}, which is not a ship piece.", (char) ('A' + col), (char) ('1' + row));
+                Module.HandleStrike();
+            }
+
+            CheckSolved();
+            return false;
+        };
+    }
+
+    private void CheckSolved()
+    {
+        if (_revealed.All(rw => rw.All(b => b)))
+            // If one of the above strikes caused the bomb to explode, give Bomb.OnBombExploded a chance
+            // to trigger so that we can avoid calling HandlePass() after the bomb has blown up.
+            StartCoroutine(Solved());
+    }
+
+    private IEnumerator Solved()
+    {
+        _isSolved = true;
+        yield return null;
+        if (!_isExploded)
+            Module.HandlePass();
+    }
+
+    private void Reveal(int col, int row)
+    {
+        if (_revealed[col][row])
+            return;
+        _revealed[col][row] = true;
+        UpdateRevealedGraphics();
+    }
+
+    private void UpdateRevealedGraphics()
+    {
+        for (int c = 0; c < 6; c++)
+            for (int r = 0; r < 6; r++)
+            {
+                if (!_revealed[c][r])
+                    continue;
+
+                var waterAbove = r == 0 || (_revealed[c][r - 1] && !_solution[c][r - 1]);
+                var waterBelow = r == 5 || (_revealed[c][r + 1] && !_solution[c][r + 1]);
+                var waterLeft = c == 0 || (_revealed[c - 1][r] && !_solution[c - 1][r]);
+                var waterRight = c == 5 || (_revealed[c + 1][r] && !_solution[c + 1][r]);
+
+                var shipAbove = r == 0 || (_revealed[c][r - 1] && _solution[c][r - 1]);
+                var shipBelow = r == 5 || (_revealed[c][r + 1] && _solution[c][r + 1]);
+                var shipLeft = c == 0 || (_revealed[c - 1][r] && _solution[c - 1][r]);
+                var shipRight = c == 5 || (_revealed[c + 1][r] && _solution[c + 1][r]);
+
+                SetGraphic(c, r,
+                    !_solution[c][r] ? "SqWater" :
+                    waterAbove && waterBelow && waterLeft && waterRight ? "SqShipA" :
+                    waterAbove && waterLeft && waterBelow && shipRight ? "SqShipL" :
+                    waterAbove && waterRight && waterBelow && shipLeft ? "SqShipR" :
+                    waterLeft && waterAbove && waterRight && shipBelow ? "SqShipT" :
+                    waterLeft && waterBelow && waterRight && shipAbove ? "SqShipB" :
+                    waterBelow && waterAbove && shipLeft && shipRight ? "SqShipF" :
+                    waterLeft && waterRight && shipAbove && shipBelow ? "SqShipF" : "SqShip");
+            }
+    }
+
+    private void SetButtonHandler(KMSelectable button, Transform buttonObject, TextMesh label)
+    {
+        button.OnInteract = delegate
+        {
+            if (_selectedButton == button || _buttonCoroutine != null || _safeLocations == null || _isSolved)
+                return false;
+
+            button.AddInteractionPunch();
+            Audio.PlaySoundAtTransform("ButtonDown", buttonObject);
+
+            _buttonCoroutine = StartCoroutine(MoveButtons(_selectedButtonObject, buttonObject, label));
+            _selectedButton = button;
+            _selectedButtonObject = buttonObject;
+            return false;
+        };
+    }
+
+    private IEnumerator MoveButtons(Transform prev, Transform next, TextMesh nextLabel)
     {
         const float down = -.07f;
         const float up = 0f;
         const int iterations = 10;
+
+        RadarLabel.color = Color.black;
+        WaterLabel.color = Color.black;
+        TorpedoLabel.color = Color.black;
 
         for (var i = 0; i <= iterations; i++)
         {
@@ -88,6 +239,8 @@ public class BattleshipModule : MonoBehaviour
             next.localPosition = new Vector3(next.localPosition.x, up - (up - down) / iterations * i * 1.25f, next.localPosition.z);
             yield return null;
         }
+
+        nextLabel.color = Color.white;
 
         const int iterations2 = 5;
         const float down2 = -.07f * 1.25f;
@@ -100,7 +253,7 @@ public class BattleshipModule : MonoBehaviour
         _buttonCoroutine = null;
     }
 
-    void ActivateModule()
+    void GeneratePuzzle()
     {
         const int size = 6;
 
@@ -182,8 +335,6 @@ public class BattleshipModule : MonoBehaviour
             return;
         }
         var ships = new[] { Rnd.Range(4, 6), Rnd.Range(3, 5), Rnd.Range(2, 4), Rnd.Range(1, 4), Rnd.Range(1, 3), 1 }.OrderByDescending(x => x).ToArray();
-        //var ships = new[] { 4, 4, 2, 1, 1, 1 }.OrderByDescending(x => x).ToArray();
-        Debug.LogFormat("[Battleship] Attempt #{0}. Ships: {1}", attempts, ships.JoinString(", "));
         var anyHypothesis = false;
         var grid = Ut.NewArray(size, size, (x, y) => (bool?) null);
         _solution = null;
@@ -398,14 +549,42 @@ public class BattleshipModule : MonoBehaviour
         goto contradiction;
 
         uniqueSolutionFound:
-        Debug.LogFormat("[Battlehsip] Solution is:\n   {0}\n{1}",
+        Debug.LogFormat("[Battlehsip] Ships: {0}. Solution:\n   {1}\n{2}",
+            ships.JoinString(", "),
             Enumerable.Range(0, size).Select(col => colCounts[col].ToString().PadLeft(2)).JoinString(),
             Enumerable.Range(0, size).Select(row => rowCounts[row].ToString().PadLeft(3) + " " + Enumerable.Range(0, size).Select(col => _safeLocations.Contains(col + row * size) ? (_solution[col][row] ? "% " : "• ") : _solution[col][row] ? "# " : "· ").JoinString()).JoinString("\n"));
 
         for (int i = 0; i < size; i++)
         {
-            _rows[i].GetComponent<TextMesh>().text = rowCounts[i] == 0 ? "o" : rowCounts[i].ToString();
-            _columns[i].GetComponent<TextMesh>().text = colCounts[i] == 0 ? "o" : colCounts[i].ToString();
+            _rows[i].text = rowCounts[i] == 0 ? "o" : rowCounts[i].ToString();
+            _columns[i].text = colCounts[i] == 0 ? "o" : colCounts[i].ToString();
         }
+    }
+
+    private void SetGraphic(int col, int row, string name)
+    {
+        if (_graphics == null)
+            _graphics = Ut.NewArray<GameObject>(6, 6);
+        if (_graphicNames == null)
+            _graphicNames = Ut.NewArray<string>(6, 6);
+
+        if (_graphicNames[col][row] == name)
+            return;
+        _graphicNames[col][row] = name;
+
+        if (_graphics[col][row] != null)
+            Destroy(_graphics[col][row]);
+
+        var graphic = _graphics[col][row] = new GameObject { name = "Icon " + (char) ('A' + col) + (char) ('1' + row) };
+        graphic.transform.parent = MainSelectable.transform;
+        graphic.transform.localPosition = new Vector3(col * 0.016f - 0.06f, 0.01401f, 0.06f - row * 0.016f);
+        graphic.transform.localEulerAngles = new Vector3(0, 180, 0);
+        graphic.transform.localScale = new Vector3(0.0014f, 0.0014f, 0.0014f);
+        graphic.AddComponent<MeshFilter>().mesh = PlaneMesh;
+        var mr = graphic.AddComponent<MeshRenderer>();
+        var tex = new Texture2D(2, 2);
+        tex.LoadImage(RawPngs.RawBytes[name]);
+        mr.material.mainTexture = tex;
+        mr.material.shader = Shader.Find("Unlit/Transparent");
     }
 }
