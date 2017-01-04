@@ -21,8 +21,10 @@ public class BattleshipModule : MonoBehaviour
     public Mesh PlaneMesh;
 
     public KMSelectable RadarButton, WaterButton, TorpedoButton;
-    public Transform RadarButtonObject, WaterButtonObject, TorpedoButtonObject;
+    public MeshRenderer RadarButtonObject, WaterButtonObject, TorpedoButtonObject;
     public TextMesh RadarLabel, WaterLabel, TorpedoLabel;
+    public Material RadarDark, WaterDark, TorpedoDark, RadarLight, WaterLight, TorpedoLight;
+    public TextMesh[] ShipLengthLabels;
 
     private TextMesh[] _columns = new TextMesh[6];
     private TextMesh[] _rows = new TextMesh[6];
@@ -54,9 +56,9 @@ public class BattleshipModule : MonoBehaviour
         _solution = null;
         _revealed = Ut.NewArray<bool>(6, 6);
 
-        SetButtonHandler(RadarButton, RadarButtonObject, RadarLabel);
-        SetButtonHandler(WaterButton, WaterButtonObject, WaterLabel);
-        SetButtonHandler(TorpedoButton, TorpedoButtonObject, TorpedoLabel);
+        SetButtonHandler(RadarButton, RadarButtonObject, RadarLabel, RadarLight);
+        SetButtonHandler(WaterButton, WaterButtonObject, WaterLabel, WaterLight);
+        SetButtonHandler(TorpedoButton, TorpedoButtonObject, TorpedoLabel, TorpedoLight);
 
         Module.OnActivate = GeneratePuzzle;
         Bomb.OnBombExploded = delegate { _isExploded = true; };
@@ -69,7 +71,7 @@ public class BattleshipModule : MonoBehaviour
 
         sel.OnInteract = delegate
         {
-            sel.AddInteractionPunch();
+            sel.AddInteractionPunch(.2f);
             if (_safeLocations == null || _isSolved)
                 return false;
 
@@ -79,11 +81,12 @@ public class BattleshipModule : MonoBehaviour
                 Debug.LogFormat("[Battleship] Used Water on Row {1}, but there is an unrevealed ship piece at {0}{1}.", (char) ('A' + col), (char) ('1' + row));
                 Module.HandleStrike();
             }
-            else
+            else if (Enumerable.Range(0, 6).Any(c => !_revealed[c][row]))
             {
                 for (int col = 0; col < 6; col++)
                     _revealed[col][row] = true;
                 UpdateRevealedGraphics();
+                Audio.PlaySoundAtTransform("Splash" + Rnd.Range(1, 9), MainSelectable.transform);
             }
 
             CheckSolved();
@@ -98,7 +101,7 @@ public class BattleshipModule : MonoBehaviour
 
         sel.OnInteract = delegate
         {
-            sel.AddInteractionPunch();
+            sel.AddInteractionPunch(.2f);
             if (_safeLocations == null || _isSolved)
                 return false;
 
@@ -108,11 +111,12 @@ public class BattleshipModule : MonoBehaviour
                 Debug.LogFormat("[Battleship] Used Water on Column {0}, but there is an unrevealed ship piece at {0}{1}.", (char) ('A' + col), (char) ('1' + row));
                 Module.HandleStrike();
             }
-            else
+            else if (Enumerable.Range(0, 6).Any(r => !_revealed[col][r]))
             {
                 for (int row = 0; row < 6; row++)
                     _revealed[col][row] = true;
                 UpdateRevealedGraphics();
+                Audio.PlaySoundAtTransform("Splash" + Rnd.Range(1, 9), MainSelectable.transform);
             }
 
             CheckSolved();
@@ -124,7 +128,7 @@ public class BattleshipModule : MonoBehaviour
     {
         sel.OnInteract = delegate
         {
-            sel.AddInteractionPunch();
+            sel.AddInteractionPunch(.5f);
             if (_selectedButton == null || _safeLocations == null || _isSolved)
                 return false;
 
@@ -153,8 +157,8 @@ public class BattleshipModule : MonoBehaviour
 
     private void CheckSolved()
     {
-        if (_revealed.All(rw => rw.All(b => b)))
-            // If one of the above strikes caused the bomb to explode, give Bomb.OnBombExploded a chance
+        if (Enumerable.Range(0, 6).All(r => Enumerable.Range(0, 6).All(c => _revealed[c][r] || !_solution[c][r])))
+            // If a strike caused the bomb to explode, give Bomb.OnBombExploded a chance
             // to trigger so that we can avoid calling HandlePass() after the bomb has blown up.
             StartCoroutine(Solved());
     }
@@ -164,7 +168,14 @@ public class BattleshipModule : MonoBehaviour
         _isSolved = true;
         yield return null;
         if (!_isExploded)
+        {
             Module.HandlePass();
+            for (int i = 0; i < 6; i++)
+                for (int j = 0; j < 6; j++)
+                    _revealed[i][j] = true;
+            UpdateRevealedGraphics();
+            StartCoroutine(MoveButtons(_selectedButtonObject, null, null, null));
+        }
     }
 
     private void Reveal(int col, int row)
@@ -173,6 +184,7 @@ public class BattleshipModule : MonoBehaviour
             return;
         _revealed[col][row] = true;
         UpdateRevealedGraphics();
+        Audio.PlaySoundAtTransform(_solution[col][row] ? "Expl" + Rnd.Range(1, 16) : "Splash" + Rnd.Range(1, 9), MainSelectable.transform);
     }
 
     private void UpdateRevealedGraphics()
@@ -205,24 +217,24 @@ public class BattleshipModule : MonoBehaviour
             }
     }
 
-    private void SetButtonHandler(KMSelectable button, Transform buttonObject, TextMesh label)
+    private void SetButtonHandler(KMSelectable button, MeshRenderer buttonObject, TextMesh label, Material lightMaterial)
     {
         button.OnInteract = delegate
         {
             if (_selectedButton == button || _buttonCoroutine != null || _safeLocations == null || _isSolved)
                 return false;
 
-            button.AddInteractionPunch();
-            Audio.PlaySoundAtTransform("ButtonDown", buttonObject);
+            button.AddInteractionPunch(.01f);
+            Audio.PlaySoundAtTransform("ButtonDown", buttonObject.transform);
 
-            _buttonCoroutine = StartCoroutine(MoveButtons(_selectedButtonObject, buttonObject, label));
+            _buttonCoroutine = StartCoroutine(MoveButtons(_selectedButtonObject, buttonObject, label, lightMaterial));
             _selectedButton = button;
-            _selectedButtonObject = buttonObject;
+            _selectedButtonObject = buttonObject.transform;
             return false;
         };
     }
 
-    private IEnumerator MoveButtons(Transform prev, Transform next, TextMesh nextLabel)
+    private IEnumerator MoveButtons(Transform prev, MeshRenderer next, TextMesh nextLabel, Material lightMaterial)
     {
         const float down = -.07f;
         const float up = 0f;
@@ -232,22 +244,31 @@ public class BattleshipModule : MonoBehaviour
         WaterLabel.color = Color.black;
         TorpedoLabel.color = Color.black;
 
+        RadarButtonObject.material = RadarDark;
+        WaterButtonObject.material = WaterDark;
+        TorpedoButtonObject.material = TorpedoDark;
+
         for (var i = 0; i <= iterations; i++)
         {
             if (prev != null)
                 prev.localPosition = new Vector3(prev.localPosition.x, down + (up - down) / iterations * i, prev.localPosition.z);
-            next.localPosition = new Vector3(next.localPosition.x, up - (up - down) / iterations * i * 1.25f, next.localPosition.z);
+            if (next != null)
+                next.transform.localPosition = new Vector3(next.transform.localPosition.x, up - (up - down) / iterations * i * 1.25f, next.transform.localPosition.z);
             yield return null;
         }
 
-        nextLabel.color = Color.white;
-
-        const int iterations2 = 5;
-        const float down2 = -.07f * 1.25f;
-        for (var i = 0; i <= iterations2; i++)
+        if (next != null)
         {
-            next.localPosition = new Vector3(next.localPosition.x, down2 + (down - down2) / iterations2 * i, next.localPosition.z);
-            yield return null;
+            nextLabel.color = Color.white;
+            next.material = lightMaterial;
+
+            const int iterations2 = 5;
+            const float down2 = -.07f * 1.25f;
+            for (var i = 0; i <= iterations2; i++)
+            {
+                next.transform.localPosition = new Vector3(next.transform.localPosition.x, down2 + (down - down2) / iterations2 * i, next.transform.localPosition.z);
+                yield return null;
+            }
         }
 
         _buttonCoroutine = null;
@@ -558,6 +579,11 @@ public class BattleshipModule : MonoBehaviour
         {
             _rows[i].text = rowCounts[i] == 0 ? "o" : rowCounts[i].ToString();
             _columns[i].text = colCounts[i] == 0 ? "o" : colCounts[i].ToString();
+        }
+        for (int i = 0; i < 5; i++)
+        {
+            var cnt = ships.Count(s => s == i + 1);
+            ShipLengthLabels[i].text = cnt == 0 ? "" : string.Format(i < 2 ? "×{0}" : "{0}×", cnt);
         }
     }
 

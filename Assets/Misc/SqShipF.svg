@@ -57,7 +57,7 @@
        spacingy="10px" />
   </sodipodi:namedview>
   <path
-     d="M 90,10 90,90 10,90 10,10 z"
+     d="M 90,10 L 90,90 10,90 10,10 z"
      id="path3039"
      inkscape:connector-curvature="0"
      style="fill:#ddccbb"
