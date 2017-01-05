@@ -26,8 +26,8 @@ public class BattleshipModule : MonoBehaviour
     public Material RadarDark, WaterDark, TorpedoDark, RadarLight, WaterLight, TorpedoLight;
     public TextMesh[] ShipLengthLabels;
 
-    private TextMesh[] _columns = new TextMesh[6];
-    private TextMesh[] _rows = new TextMesh[6];
+    private TextMesh[] _columns = new TextMesh[5];
+    private TextMesh[] _rows = new TextMesh[5];
 
     private KMSelectable _selectedButton;
     private Transform _selectedButtonObject;
@@ -41,20 +41,20 @@ public class BattleshipModule : MonoBehaviour
 
     void Start()
     {
-        for (int r = 0; r < 6; r++)
+        for (int r = 0; r < 5; r++)
         {
             SetRowHandler(MainSelectable.transform.FindChild("Row " + (char) ('1' + r)), r);
-            for (int c = 0; c < 6; c++)
+            for (int c = 0; c < 5; c++)
                 SetCellHandler(MainSelectable.transform.FindChild("Square " + (char) ('A' + c) + (char) ('1' + r)).GetComponent<KMSelectable>(), c, r);
         }
-        for (int c = 0; c < 6; c++)
+        for (int c = 0; c < 5; c++)
             SetColHandler(MainSelectable.transform.FindChild("Col " + (char) ('A' + c)), c);
 
         _isSolved = false;
         _isExploded = false;
         _safeLocations = null;
         _solution = null;
-        _revealed = Ut.NewArray<bool>(6, 6);
+        _revealed = Ut.NewArray<bool>(5, 5);
 
         SetButtonHandler(RadarButton, RadarButtonObject, RadarLabel, RadarLight);
         SetButtonHandler(WaterButton, WaterButtonObject, WaterLabel, WaterLight);
@@ -75,15 +75,15 @@ public class BattleshipModule : MonoBehaviour
             if (_safeLocations == null || _isSolved)
                 return false;
 
-            if (Enumerable.Range(0, 6).Any(c => !_revealed[c][row] && _solution[c][row] == true))
+            if (Enumerable.Range(0, 5).Any(c => !_revealed[c][row] && _solution[c][row] == true))
             {
-                var col = Enumerable.Range(0, 6).First(c => !_revealed[c][row] && _solution[c][row] == true);
+                var col = Enumerable.Range(0, 5).First(c => !_revealed[c][row] && _solution[c][row] == true);
                 Debug.LogFormat("[Battleship] Used Water on Row {1}, but there is an unrevealed ship piece at {0}{1}.", (char) ('A' + col), (char) ('1' + row));
                 Module.HandleStrike();
             }
-            else if (Enumerable.Range(0, 6).Any(c => !_revealed[c][row]))
+            else if (Enumerable.Range(0, 5).Any(c => !_revealed[c][row]))
             {
-                for (int col = 0; col < 6; col++)
+                for (int col = 0; col < 5; col++)
                     _revealed[col][row] = true;
                 UpdateRevealedGraphics();
                 Audio.PlaySoundAtTransform("Splash" + Rnd.Range(1, 9), MainSelectable.transform);
@@ -105,15 +105,15 @@ public class BattleshipModule : MonoBehaviour
             if (_safeLocations == null || _isSolved)
                 return false;
 
-            if (Enumerable.Range(0, 6).Any(r => !_revealed[col][r] && _solution[col][r] == true))
+            if (Enumerable.Range(0, 5).Any(r => !_revealed[col][r] && _solution[col][r] == true))
             {
-                var row = Enumerable.Range(0, 6).First(r => !_revealed[col][r] && _solution[col][r] == true);
+                var row = Enumerable.Range(0, 5).First(r => !_revealed[col][r] && _solution[col][r] == true);
                 Debug.LogFormat("[Battleship] Used Water on Column {0}, but there is an unrevealed ship piece at {0}{1}.", (char) ('A' + col), (char) ('1' + row));
                 Module.HandleStrike();
             }
-            else if (Enumerable.Range(0, 6).Any(r => !_revealed[col][r]))
+            else if (Enumerable.Range(0, 5).Any(r => !_revealed[col][r]))
             {
-                for (int row = 0; row < 6; row++)
+                for (int row = 0; row < 5; row++)
                     _revealed[col][row] = true;
                 UpdateRevealedGraphics();
                 Audio.PlaySoundAtTransform("Splash" + Rnd.Range(1, 9), MainSelectable.transform);
@@ -134,7 +134,7 @@ public class BattleshipModule : MonoBehaviour
 
             Reveal(col, row);
 
-            if (_selectedButton == RadarButton && !_safeLocations.Contains(col + 6 * row))
+            if (_selectedButton == RadarButton && !_safeLocations.Contains(col + 5 * row))
             {
                 Debug.LogFormat("[Battleship] Used Radar on {0}{1}, which is not a safe location.", (char) ('A' + col), (char) ('1' + row));
                 Module.HandleStrike();
@@ -157,7 +157,7 @@ public class BattleshipModule : MonoBehaviour
 
     private void CheckSolved()
     {
-        if (Enumerable.Range(0, 6).All(r => Enumerable.Range(0, 6).All(c => _revealed[c][r] || !_solution[c][r])))
+        if (Enumerable.Range(0, 5).All(r => Enumerable.Range(0, 5).All(c => _revealed[c][r] || !_solution[c][r])))
             // If a strike caused the bomb to explode, give Bomb.OnBombExploded a chance
             // to trigger so that we can avoid calling HandlePass() after the bomb has blown up.
             StartCoroutine(Solved());
@@ -170,8 +170,8 @@ public class BattleshipModule : MonoBehaviour
         if (!_isExploded)
         {
             Module.HandlePass();
-            for (int i = 0; i < 6; i++)
-                for (int j = 0; j < 6; j++)
+            for (int i = 0; i < 5; i++)
+                for (int j = 0; j < 5; j++)
                     _revealed[i][j] = true;
             UpdateRevealedGraphics();
             StartCoroutine(MoveButtons(_selectedButtonObject, null, null, null));
@@ -189,21 +189,21 @@ public class BattleshipModule : MonoBehaviour
 
     private void UpdateRevealedGraphics()
     {
-        for (int c = 0; c < 6; c++)
-            for (int r = 0; r < 6; r++)
+        for (int c = 0; c < 5; c++)
+            for (int r = 0; r < 5; r++)
             {
                 if (!_revealed[c][r])
                     continue;
 
                 var waterAbove = r == 0 || (_revealed[c][r - 1] && !_solution[c][r - 1]);
-                var waterBelow = r == 5 || (_revealed[c][r + 1] && !_solution[c][r + 1]);
+                var waterBelow = r == 4 || (_revealed[c][r + 1] && !_solution[c][r + 1]);
                 var waterLeft = c == 0 || (_revealed[c - 1][r] && !_solution[c - 1][r]);
-                var waterRight = c == 5 || (_revealed[c + 1][r] && !_solution[c + 1][r]);
+                var waterRight = c == 4 || (_revealed[c + 1][r] && !_solution[c + 1][r]);
 
                 var shipAbove = r == 0 || (_revealed[c][r - 1] && _solution[c][r - 1]);
-                var shipBelow = r == 5 || (_revealed[c][r + 1] && _solution[c][r + 1]);
+                var shipBelow = r == 4 || (_revealed[c][r + 1] && _solution[c][r + 1]);
                 var shipLeft = c == 0 || (_revealed[c - 1][r] && _solution[c - 1][r]);
-                var shipRight = c == 5 || (_revealed[c + 1][r] && _solution[c + 1][r]);
+                var shipRight = c == 4 || (_revealed[c + 1][r] && _solution[c + 1][r]);
 
                 SetGraphic(c, r,
                     !_solution[c][r] ? "SqWater" :
@@ -276,7 +276,7 @@ public class BattleshipModule : MonoBehaviour
 
     void GeneratePuzzle()
     {
-        const int size = 6;
+        const int size = 5;
 
         // What are the safe locations?
         var safeColumns = Bomb.GetSerialNumberLetters().Select(ch => (ch - 'A') % size).ToList();
@@ -348,6 +348,7 @@ public class BattleshipModule : MonoBehaviour
 
         // Keep retrying to generate a puzzle until we find one that has a unique solution but isn’t trivial to solve.
         var attempts = 0;
+        var nonUnique = 0;
         retry:
         attempts++;
         if (attempts == 1000)
@@ -355,7 +356,7 @@ public class BattleshipModule : MonoBehaviour
             Debug.LogFormat("[Battleship] Giving up.");
             return;
         }
-        var ships = new[] { Rnd.Range(4, 6), Rnd.Range(3, 5), Rnd.Range(2, 4), Rnd.Range(1, 4), Rnd.Range(1, 3), 1 }.OrderByDescending(x => x).ToArray();
+        var ships = new[] { Rnd.Range(3, 5), Rnd.Range(2, 4), Rnd.Range(1, 4), Rnd.Range(1, 3), Rnd.Range(0, 2) }.Where(x => x != 0).OrderByDescending(x => x).ToArray();
         var anyHypothesis = false;
         var grid = Ut.NewArray(size, size, (x, y) => (bool?) null);
         _solution = null;
@@ -563,24 +564,28 @@ public class BattleshipModule : MonoBehaviour
 
         // Found a valid solution. Have we found a solution before? If so, the puzzle is not unique.
         if (_solution != null)
+        {
+            nonUnique++;
             goto retry;
+        }
 
         // Found a solution. Now keep searching to see if there’s another, i.e. see whether the puzzle is unique.
         _solution = Ut.NewArray(size, size, (i, j) => grid[i][j] ?? false);
         goto contradiction;
 
         uniqueSolutionFound:
-        Debug.LogFormat("[Battlehsip] Ships: {0}. Solution:\n   {1}\n{2}",
+        Debug.LogFormat("[Battlehsip] Ships: {0}. ({3} attempts, {4} non-unique) — Solution:\n   {1}\n{2}",
             ships.JoinString(", "),
             Enumerable.Range(0, size).Select(col => colCounts[col].ToString().PadLeft(2)).JoinString(),
-            Enumerable.Range(0, size).Select(row => rowCounts[row].ToString().PadLeft(3) + " " + Enumerable.Range(0, size).Select(col => _safeLocations.Contains(col + row * size) ? (_solution[col][row] ? "% " : "• ") : _solution[col][row] ? "# " : "· ").JoinString()).JoinString("\n"));
+            Enumerable.Range(0, size).Select(row => rowCounts[row].ToString().PadLeft(3) + " " + Enumerable.Range(0, size).Select(col => _safeLocations.Contains(col + row * size) ? (_solution[col][row] ? "% " : "• ") : _solution[col][row] ? "# " : "· ").JoinString()).JoinString("\n"),
+            attempts, nonUnique);
 
         for (int i = 0; i < size; i++)
         {
             _rows[i].text = rowCounts[i] == 0 ? "o" : rowCounts[i].ToString();
             _columns[i].text = colCounts[i] == 0 ? "o" : colCounts[i].ToString();
         }
-        for (int i = 0; i < 5; i++)
+        for (int i = 0; i < 4; i++)
         {
             var cnt = ships.Count(s => s == i + 1);
             ShipLengthLabels[i].text = cnt == 0 ? "" : string.Format(i < 2 ? "×{0}" : "{0}×", cnt);
@@ -590,9 +595,9 @@ public class BattleshipModule : MonoBehaviour
     private void SetGraphic(int col, int row, string name)
     {
         if (_graphics == null)
-            _graphics = Ut.NewArray<GameObject>(6, 6);
+            _graphics = Ut.NewArray<GameObject>(5, 5);
         if (_graphicNames == null)
-            _graphicNames = Ut.NewArray<string>(6, 6);
+            _graphicNames = Ut.NewArray<string>(5, 5);
 
         if (_graphicNames[col][row] == name)
             return;
@@ -603,9 +608,9 @@ public class BattleshipModule : MonoBehaviour
 
         var graphic = _graphics[col][row] = new GameObject { name = "Icon " + (char) ('A' + col) + (char) ('1' + row) };
         graphic.transform.parent = MainSelectable.transform;
-        graphic.transform.localPosition = new Vector3(col * 0.016f - 0.06f, 0.01401f, 0.06f - row * 0.016f);
+        graphic.transform.localPosition = new Vector3(col * 0.0192f - 0.0584f, 0.01401f, 0.0584f - row * 0.0192f);
         graphic.transform.localEulerAngles = new Vector3(0, 180, 0);
-        graphic.transform.localScale = new Vector3(0.0014f, 0.0014f, 0.0014f);
+        graphic.transform.localScale = new Vector3(0.00172f, 0.00172f, 0.00172f);
         graphic.AddComponent<MeshFilter>().mesh = PlaneMesh;
         var mr = graphic.AddComponent<MeshRenderer>();
         var tex = new Texture2D(2, 2);
