@@ -72,7 +72,7 @@ public class BattleshipModule : MonoBehaviour
         sel.OnInteract = delegate
         {
             sel.AddInteractionPunch(.2f);
-            if (_safeLocations == null || _isSolved)
+            if (_safeLocations == null || _isSolved || Enumerable.Range(0, 5).All(c => _revealed[c][row]))
                 return false;
 
             if (Enumerable.Range(0, 5).Any(c => !_revealed[c][row] && _solution[c][row] == true))
@@ -81,7 +81,7 @@ public class BattleshipModule : MonoBehaviour
                 Debug.LogFormat("[Battleship] Used Water on Row {1}, but there is an unrevealed ship piece at {0}{1}.", (char) ('A' + col), (char) ('1' + row));
                 Module.HandleStrike();
             }
-            else if (Enumerable.Range(0, 5).Any(c => !_revealed[c][row]))
+            else
             {
                 for (int col = 0; col < 5; col++)
                     _revealed[col][row] = true;
@@ -102,7 +102,7 @@ public class BattleshipModule : MonoBehaviour
         sel.OnInteract = delegate
         {
             sel.AddInteractionPunch(.2f);
-            if (_safeLocations == null || _isSolved)
+            if (_safeLocations == null || _isSolved || Enumerable.Range(0, 5).All(r => _revealed[col][r]))
                 return false;
 
             if (Enumerable.Range(0, 5).Any(r => !_revealed[col][r] && _solution[col][r] == true))
@@ -111,7 +111,7 @@ public class BattleshipModule : MonoBehaviour
                 Debug.LogFormat("[Battleship] Used Water on Column {0}, but there is an unrevealed ship piece at {0}{1}.", (char) ('A' + col), (char) ('1' + row));
                 Module.HandleStrike();
             }
-            else if (Enumerable.Range(0, 5).Any(r => !_revealed[col][r]))
+            else
             {
                 for (int row = 0; row < 5; row++)
                     _revealed[col][row] = true;
@@ -129,7 +129,7 @@ public class BattleshipModule : MonoBehaviour
         sel.OnInteract = delegate
         {
             sel.AddInteractionPunch(.5f);
-            if (_selectedButton == null || _safeLocations == null || _isSolved)
+            if (_selectedButton == null || _safeLocations == null || _isSolved || _revealed[col][row])
                 return false;
 
             Reveal(col, row);
