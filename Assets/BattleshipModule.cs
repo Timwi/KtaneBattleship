@@ -290,8 +290,65 @@ public class BattleshipModule : MonoBehaviour
         _safeLocations = Enumerable.Range(0, safeColumns.Count).Select(i => safeColumns[i] + size * safeRows[i]).ToArray();
         Debug.LogFormat("[Battleship] Safe locations: {0}", _safeLocations.Select(h => "" + (char) ('A' + h % size) + (char) ('1' + h / size)).JoinString(", "));
 
+
+        // ═══════════════════════════════════════════════════════════════════════════════════════
+        // ALGORITHM to generate BATTLESHIP PUZZLES with UNIQUE SOLUTIONS
+        // ═══════════════════════════════════════════════════════════════════════════════════════
+        // The following algorithm makes heavy use of goto. Because many readers of this code may find this difficult to follow,
+        // here is a summary of the algorithm with only the gotos in place.
+        // ───────────────────────────────────────────────────────────────────────
+        //  retry:
+        //  Initialize everything to initial values.
+        //  Generate a random arrangement of ships, calculate rowCounts and colCounts, then empty the grid again.
+        //
+        //  nextIter:
+        //  If the grid is full,
+        //      goto tentativeSolution;
+        //
+        //  Deduce cells from obvious heuristics.
+        //  If a deduction can be made,
+        //      goto nextIter;
+        //  If a column or row becomes impossible,
+        //      goto contradiction;
+        //
+        //  No obvious deduction: Try a hypothesis. Place a Ship in an undeduced location and push it onto a Stack
+        //  goto nextIter;
+        //
+        //  contradiction:
+        //  If the Stack is empty and one solution has been found,
+        //      goto uniqueSolutionFound;
+        //
+        //  If the Stack is empty, the puzzle is impossible, which shouldn’t happen because we generated a valid one
+        //      goto retry;
+        //
+        //  Pop the most recent hypothesis off the Stack and place Water there.
+        //  goto nextIter;
+        //
+        //  tentativeSolution:
+        //  If no hypothesis had been made, the puzzle is too trivial.
+        //      goto retry;
+        //
+        //  Found a tentative solution. Check that it’s valid by counting all the ships.
+        //  If there are too many of any particular length of ship,
+        //      goto contradiction;
+        //  If any ships are unaccounted for (this should never happen because the previous if would have to trigger as well),
+        //      goto contradiction;
+        //
+        //  Found a valid solution.
+        //  If a previous solution had already been found, the puzzle is not unique.
+        //      goto retry;
+        //
+        //  Otherwise, remember this solution and keep going to see if there is a second solution.
+        //  goto contradiction;
+        //
+        //  uniqueSolutionFound:
+        //  Done!
+        // ───────────────────────────────────────────────────────────────────────
+
+
         // Keep retrying to generate a puzzle until we find one that has a unique solution but isn’t trivial to solve.
         var attempts = 0;
+        var nonUnique = 0;
         retry:
         attempts++;
         if (attempts == 1000)
@@ -300,6 +357,7 @@ public class BattleshipModule : MonoBehaviour
             return;
         }
         var ships = new[] { Rnd.Range(3, 5), Rnd.Range(2, 4), Rnd.Range(1, 4), Rnd.Range(1, 3), Rnd.Range(0, 2) }.Where(x => x != 0).OrderByDescending(x => x).ToArray();
+        var anyHypothesis = false;
         var grid = Ut.NewArray(size, size, (x, y) => (bool?) null);
         _solution = null;
 
@@ -350,10 +408,12 @@ public class BattleshipModule : MonoBehaviour
 
         var rowsDone = new bool[size];
         var colsDone = new bool[size];
+        var hypotheses = new[] { new { X = 0, Y = 0, Grid = (bool?[][]) null, RowsDone = (bool[]) null, ColsDone = (bool[]) null } }.ToStack();
+        hypotheses.Pop();
 
         nextIter:
         if (rowsDone.All(b => b) && colsDone.All(b => b))
-            goto solutionFound;
+            goto tentativeSolution;
 
         // Diagonal from a true is a false
         for (int c = 0; c < size; c++)
@@ -376,7 +436,11 @@ public class BattleshipModule : MonoBehaviour
         for (int r = 0; r < size; r++)
             if (!rowsDone[r])
             {
-                if (Enumerable.Range(0, size).Count(c => grid[c][r] != false) == rowCounts[r])
+                var cnt = Enumerable.Range(0, size).Count(c => grid[c][r] != false);
+                if (cnt < rowCounts[r])
+                    goto contradiction;
+
+                if (cnt == rowCounts[r])
                 {
                     for (int c = 0; c < size; c++)
                         if (grid[c][r] == null)
@@ -384,7 +448,12 @@ public class BattleshipModule : MonoBehaviour
                     rowsDone[r] = true;
                     anyDeduced = true;
                 }
-                else if (Enumerable.Range(0, size).Count(c => grid[c][r] == true) == rowCounts[r])
+
+                cnt = Enumerable.Range(0, size).Count(c => grid[c][r] == true);
+                if (cnt > rowCounts[r])
+                    goto contradiction;
+
+                if (cnt == rowCounts[r])
                 {
                     for (int c = 0; c < size; c++)
                         if (grid[c][r] == null)
@@ -398,7 +467,11 @@ public class BattleshipModule : MonoBehaviour
         for (int c = 0; c < size; c++)
             if (!colsDone[c])
             {
-                if (Enumerable.Range(0, size).Count(r => grid[c][r] != false) == colCounts[c])
+                var cnt = Enumerable.Range(0, size).Count(r => grid[c][r] != false);
+                if (cnt < colCounts[c])
+                    goto contradiction;
+
+                if (cnt == colCounts[c])
                 {
                     for (int r = 0; r < size; r++)
                         if (grid[c][r] == null)
@@ -406,7 +479,12 @@ public class BattleshipModule : MonoBehaviour
                     colsDone[c] = true;
                     anyDeduced = true;
                 }
-                else if (Enumerable.Range(0, size).Count(r => grid[c][r] == true) == colCounts[c])
+
+                cnt = Enumerable.Range(0, size).Count(r => grid[c][r] == true);
+                if (cnt > colCounts[c])
+                    goto contradiction;
+
+                if (cnt == colCounts[c])
                 {
                     for (int r = 0; r < size; r++)
                         if (grid[c][r] == null)
@@ -419,16 +497,88 @@ public class BattleshipModule : MonoBehaviour
         if (anyDeduced)
             goto nextIter;
 
-        // No obvious deduction; the puzzle is deemed to hard. Try a new one.
-        goto retry;
+        // No obvious deduction. Explore a hypothesis by placing a ship in the first undeduced space
+        anyHypothesis = true;
+        var unfinishedCol = Array.IndexOf(colsDone, false);
+        var unfinishedRow = Array.IndexOf(grid[unfinishedCol], null);
+        hypotheses.Push(new { X = unfinishedCol, Y = unfinishedRow, Grid = Ut.NewArray(size, size, (x, y) => grid[x][y]), RowsDone = (bool[]) rowsDone.Clone(), ColsDone = (bool[]) colsDone.Clone() });
+        grid[unfinishedCol][unfinishedRow] = true;
+        goto nextIter;
 
-        solutionFound:
-        _solution = Ut.NewArray(size, size, (c, r) => grid[c][r] ?? false);
-        Debug.LogFormat("[Battlehsip] Ships: {0}. ({3} attempts) — Solution:\n   {1}\n{2}",
+        contradiction:
+        if (hypotheses.Count == 0)
+        {
+            if (_solution != null)
+                goto uniqueSolutionFound;
+
+            Debug.LogFormat("[Battleship] The generated puzzle is impossible. This should never happen!");
+            goto retry;
+        }
+
+        // Backtrack to the last hypothesis and place water instead
+        var prevHypo = hypotheses.Pop();
+        grid = prevHypo.Grid;
+        rowsDone = prevHypo.RowsDone;
+        colsDone = prevHypo.ColsDone;
+        grid[prevHypo.X][prevHypo.Y] = false;
+        goto nextIter;
+
+        tentativeSolution:
+
+        // If the puzzle was deduced entirely through trivial deductions, it’s too easy.
+        if (!anyHypothesis)
+            goto retry;
+
+        // Check that the tentative solution is correct by counting all the ships.
+        var unaccountedFor = ships.OrderByDescending(x => x).ToList();
+        for (int x = 0; x < size; x++)
+            for (int y = 0; y < size; y++)
+            {
+                int? thisLen = null;
+                if (grid[x][y] == true && (x == 0 || grid[x - 1][y] == false) && (x == size - 1 || grid[x + 1][y] == false) && (y == 0 || grid[x][y - 1] == false) && (y == size - 1 || grid[x][y + 1] == false))
+                    thisLen = 1;
+                if (thisLen == null && grid[x][y] == true && (x == 0 || grid[x - 1][y] == false))
+                {
+                    var len = 0;
+                    while (x + len < size && grid[x + len][y] == true)
+                        len++;
+                    if (len > 1 && (x + len == size || grid[x + len][y] == false))
+                        thisLen = len;
+                }
+                if (thisLen == null && grid[x][y] == true && (y == 0 || grid[x][y - 1] == false))
+                {
+                    var len = 0;
+                    while (y + len < size && grid[x][y + len] == true)
+                        len++;
+                    if (len > 1 && (y + len == size || grid[x][y + len] == false))
+                        thisLen = len;
+                }
+                // Are there too many ships of this length?
+                if (thisLen != null && !unaccountedFor.Remove(thisLen.Value))
+                    goto contradiction;
+            }
+
+        // Is there a ship length unaccounted for? (This should never happen because if it is so, then another ship length must have too many, so the previous check should have caught it.)
+        if (unaccountedFor.Count > 0)
+            goto contradiction;
+
+        // Found a valid solution. Have we found a solution before? If so, the puzzle is not unique.
+        if (_solution != null)
+        {
+            nonUnique++;
+            goto retry;
+        }
+
+        // Found a solution. Now keep searching to see if there’s another, i.e. see whether the puzzle is unique.
+        _solution = Ut.NewArray(size, size, (i, j) => grid[i][j] ?? false);
+        goto contradiction;
+
+        uniqueSolutionFound:
+        Debug.LogFormat("[Battlehsip] Ships: {0}. ({3} attempts, {4} non-unique) — Solution:\n   {1}\n{2}",
             ships.JoinString(", "),
             Enumerable.Range(0, size).Select(col => colCounts[col].ToString().PadLeft(2)).JoinString(),
             Enumerable.Range(0, size).Select(row => rowCounts[row].ToString().PadLeft(3) + " " + Enumerable.Range(0, size).Select(col => _safeLocations.Contains(col + row * size) ? (_solution[col][row] ? "% " : "• ") : _solution[col][row] ? "# " : "· ").JoinString()).JoinString("\n"),
-            attempts);
+            attempts, nonUnique);
 
         for (int i = 0; i < size; i++)
         {
