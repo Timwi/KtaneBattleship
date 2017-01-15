@@ -71,7 +71,7 @@ public class BattleshipModule : MonoBehaviour
 
         sel.OnInteract = delegate
         {
-            sel.AddInteractionPunch(.2f);
+            sel.AddInteractionPunch(.25f);
             if (_safeLocations == null || _isSolved || Enumerable.Range(0, 5).All(c => _revealed[c][row]))
                 return false;
 
@@ -101,7 +101,7 @@ public class BattleshipModule : MonoBehaviour
 
         sel.OnInteract = delegate
         {
-            sel.AddInteractionPunch(.2f);
+            sel.AddInteractionPunch(.25f);
             if (_safeLocations == null || _isSolved || Enumerable.Range(0, 5).All(r => _revealed[col][r]))
                 return false;
 
@@ -128,7 +128,7 @@ public class BattleshipModule : MonoBehaviour
     {
         sel.OnInteract = delegate
         {
-            sel.AddInteractionPunch(.5f);
+            sel.AddInteractionPunch(.25f);
             if (_selectedButton == null || _safeLocations == null || _isSolved || _revealed[col][row])
                 return false;
 
