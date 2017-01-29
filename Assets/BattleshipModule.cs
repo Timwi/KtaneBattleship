@@ -574,7 +574,7 @@ public class BattleshipModule : MonoBehaviour
         goto contradiction;
 
         uniqueSolutionFound:
-        Debug.LogFormat("[Battlehsip] Ships: {0}. ({3} attempts, {4} non-unique) — Solution:\n   {1}\n{2}",
+        Debug.LogFormat("[Battleship] Ships: {0}. ({3} attempts, {4} non-unique) — Solution:\n   {1}\n{2}",
             ships.JoinString(", "),
             Enumerable.Range(0, size).Select(col => colCounts[col].ToString().PadLeft(2)).JoinString(),
             Enumerable.Range(0, size).Select(row => rowCounts[row].ToString().PadLeft(3) + " " + Enumerable.Range(0, size).Select(col => _safeLocations.Contains(col + row * size) ? (_solution[col][row] ? "% " : "• ") : _solution[col][row] ? "# " : "· ").JoinString()).JoinString("\n"),
