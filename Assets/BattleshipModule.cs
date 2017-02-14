@@ -39,8 +39,13 @@ public class BattleshipModule : MonoBehaviour
     private string[][] _graphicNames;
     private bool[][] _revealed;
 
+    private static int _moduleIdCounter = 1;
+    private int _moduleId;
+
     void Start()
     {
+        _moduleId = _moduleIdCounter++;
+
         for (int r = 0; r < 5; r++)
         {
             SetRowHandler(MainSelectable.transform.FindChild("Row " + (char) ('1' + r)), r);
@@ -78,7 +83,7 @@ public class BattleshipModule : MonoBehaviour
             if (Enumerable.Range(0, 5).Any(c => !_revealed[c][row] && _solution[c][row] == true))
             {
                 var col = Enumerable.Range(0, 5).First(c => !_revealed[c][row] && _solution[c][row] == true);
-                Debug.LogFormat("[Battleship] Used Water on Row {1}, but there is an unrevealed ship piece at {0}{1}.", (char) ('A' + col), (char) ('1' + row));
+                Debug.LogFormat("[Battleship #{2}] Used Water on Row {1}, but there is an unrevealed ship piece at {0}{1}.", (char) ('A' + col), (char) ('1' + row), _moduleId);
                 Module.HandleStrike();
             }
             else
@@ -108,7 +113,7 @@ public class BattleshipModule : MonoBehaviour
             if (Enumerable.Range(0, 5).Any(r => !_revealed[col][r] && _solution[col][r] == true))
             {
                 var row = Enumerable.Range(0, 5).First(r => !_revealed[col][r] && _solution[col][r] == true);
-                Debug.LogFormat("[Battleship] Used Water on Column {0}, but there is an unrevealed ship piece at {0}{1}.", (char) ('A' + col), (char) ('1' + row));
+                Debug.LogFormat("[Battleship #{2}] Used Water on Column {0}, but there is an unrevealed ship piece at {0}{1}.", (char) ('A' + col), (char) ('1' + row), _moduleId);
                 Module.HandleStrike();
             }
             else
@@ -136,17 +141,17 @@ public class BattleshipModule : MonoBehaviour
 
             if (_selectedButton == RadarButton && !_safeLocations.Contains(col + 5 * row))
             {
-                Debug.LogFormat("[Battleship] Used Radar on {0}{1}, which is not a safe location.", (char) ('A' + col), (char) ('1' + row));
+                Debug.LogFormat("[Battleship #{2}] Used Radar on {0}{1}, which is not a safe location.", (char) ('A' + col), (char) ('1' + row), _moduleId);
                 Module.HandleStrike();
             }
             else if (_selectedButton == WaterButton && _solution[col][row] != false)
             {
-                Debug.LogFormat("[Battleship] Used Water on {0}{1}, which is not water.", (char) ('A' + col), (char) ('1' + row));
+                Debug.LogFormat("[Battleship #{2}] Used Water on {0}{1}, which is not water.", (char) ('A' + col), (char) ('1' + row), _moduleId);
                 Module.HandleStrike();
             }
             else if (_selectedButton == TorpedoButton && _solution[col][row] != true)
             {
-                Debug.LogFormat("[Battleship] Used Torpedo on {0}{1}, which is not a ship piece.", (char) ('A' + col), (char) ('1' + row));
+                Debug.LogFormat("[Battleship #{2}] Used Torpedo on {0}{1}, which is not a ship piece.", (char) ('A' + col), (char) ('1' + row), _moduleId);
                 Module.HandleStrike();
             }
 
@@ -288,7 +293,7 @@ public class BattleshipModule : MonoBehaviour
         safeColumns.Add((Bomb.GetPortCount() + size - 1) % size);
         safeRows.Add((Bomb.GetIndicators().Count() + Bomb.GetBatteryCount() + size - 1) % size);
         _safeLocations = Enumerable.Range(0, safeColumns.Count).Select(i => safeColumns[i] + size * safeRows[i]).ToArray();
-        Debug.LogFormat("[Battleship] Safe locations: {0}", _safeLocations.Select(h => "" + (char) ('A' + h % size) + (char) ('1' + h / size)).JoinString(", "));
+        Debug.LogFormat("[Battleship #{1}] Safe locations: {0}", _safeLocations.Select(h => "" + (char) ('A' + h % size) + (char) ('1' + h / size)).JoinString(", "), _moduleId);
 
 
         // ═══════════════════════════════════════════════════════════════════════════════════════
@@ -353,7 +358,8 @@ public class BattleshipModule : MonoBehaviour
         attempts++;
         if (attempts == 1000)
         {
-            Debug.LogFormat("[Battleship] Giving up.");
+            Debug.LogFormat("[Battleship #{0}] Could not generate puzzle. Giving up.", _moduleId);
+            Module.HandlePass();
             return;
         }
         var ships = new[] { Rnd.Range(3, 5), Rnd.Range(2, 4), Rnd.Range(1, 4), Rnd.Range(1, 3), Rnd.Range(0, 2) }.Where(x => x != 0).OrderByDescending(x => x).ToArray();
@@ -511,7 +517,7 @@ public class BattleshipModule : MonoBehaviour
             if (_solution != null)
                 goto uniqueSolutionFound;
 
-            Debug.LogFormat("[Battleship] The generated puzzle is impossible. This should never happen!");
+            Debug.LogFormat("[Battleship #{0}] The generated puzzle is impossible. This should never happen!", _moduleId);
             goto retry;
         }
 
@@ -574,11 +580,11 @@ public class BattleshipModule : MonoBehaviour
         goto contradiction;
 
         uniqueSolutionFound:
-        Debug.LogFormat("[Battleship] Ships: {0}. ({3} attempts, {4} non-unique) — Solution:\n   {1}\n{2}",
+        Debug.LogFormat("[Battleship #{3}] Ships: {0}\n   {1}\n{2}",
             ships.JoinString(", "),
             Enumerable.Range(0, size).Select(col => colCounts[col].ToString().PadLeft(2)).JoinString(),
             Enumerable.Range(0, size).Select(row => rowCounts[row].ToString().PadLeft(3) + " " + Enumerable.Range(0, size).Select(col => _safeLocations.Contains(col + row * size) ? (_solution[col][row] ? "% " : "• ") : _solution[col][row] ? "# " : "· ").JoinString()).JoinString("\n"),
-            attempts, nonUnique);
+            _moduleId);
 
         for (int i = 0; i < size; i++)
         {
