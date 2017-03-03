@@ -18,7 +18,7 @@ public class BattleshipModule : MonoBehaviour
     public KMAudio Audio;
 
     public KMSelectable MainSelectable;
-    public Mesh PlaneMesh;
+    public GameObject Icon;
 
     public KMSelectable RadarButton, WaterButton, TorpedoButton;
     public MeshRenderer RadarButtonObject, WaterButtonObject, TorpedoButtonObject;
@@ -42,9 +42,19 @@ public class BattleshipModule : MonoBehaviour
     private static int _moduleIdCounter = 1;
     private int _moduleId;
 
+    private static Dictionary<string, Texture2D> _textures;
+
     void Start()
     {
         _moduleId = _moduleIdCounter++;
+
+        if (_textures == null)
+            _textures = RawPngs.RawBytes.ToDictionary(kvp => kvp.Key, kvp =>
+            {
+                var tex = new Texture2D(2, 2);
+                tex.LoadImage(kvp.Value);
+                return tex;
+            });
 
         for (int r = 0; r < 5; r++)
         {
@@ -609,19 +619,21 @@ public class BattleshipModule : MonoBehaviour
             return;
         _graphicNames[col][row] = name;
 
-        if (_graphics[col][row] != null)
-            Destroy(_graphics[col][row]);
+        GameObject graphic;
+        if (_graphics[col][row] == null)
+        {
+            graphic = _graphics[col][row] = Instantiate(Icon);
+            graphic.name = "Icon " + (char) ('A' + col) + (char) ('1' + row);
+            graphic.transform.parent = MainSelectable.transform;
+            graphic.transform.localPosition = new Vector3(col * 0.0192f - 0.0584f, 0.01401f, 0.0584f - row * 0.0192f);
+            graphic.transform.localEulerAngles = new Vector3(0, 180, 0);
+            graphic.transform.localScale = new Vector3(0.00172f, 0.00172f, 0.00172f);
+        }
+        else
+            graphic = _graphics[col][row];
 
-        var graphic = _graphics[col][row] = new GameObject { name = "Icon " + (char) ('A' + col) + (char) ('1' + row) };
-        graphic.transform.parent = MainSelectable.transform;
-        graphic.transform.localPosition = new Vector3(col * 0.0192f - 0.0584f, 0.01401f, 0.0584f - row * 0.0192f);
-        graphic.transform.localEulerAngles = new Vector3(0, 180, 0);
-        graphic.transform.localScale = new Vector3(0.00172f, 0.00172f, 0.00172f);
-        graphic.AddComponent<MeshFilter>().mesh = PlaneMesh;
-        var mr = graphic.AddComponent<MeshRenderer>();
-        var tex = new Texture2D(2, 2);
-        tex.LoadImage(RawPngs.RawBytes[name]);
-        mr.material.mainTexture = tex;
+        var mr = graphic.GetComponent<MeshRenderer>();
+        mr.material.mainTexture = _textures[name];
         mr.material.shader = Shader.Find("Unlit/Transparent");
     }
 }
