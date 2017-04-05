@@ -204,7 +204,7 @@ public class BattleshipModule : MonoBehaviour
             buttonlist.Add(TorpedoButton);
             buttons = command.Substring(4).ToUpperInvariant();
         }
-        else if (command.StartsWith("torpedo", StringComparison.InvariantCultureIgnoreCase))
+        else if (command.StartsWith("torpedo ", StringComparison.InvariantCultureIgnoreCase))
         {
             buttonlist.Add(TorpedoButton);
             buttons = command.Substring(8).ToUpperInvariant();
