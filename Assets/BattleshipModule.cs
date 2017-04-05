@@ -172,71 +172,78 @@ public class BattleshipModule : MonoBehaviour
 
     KMSelectable[] ProcessTwitchCommand(string command)
     {
-        //MainSelectable.transform.FindChild("Row " + (char) ('1' + r)).GetComponent<KMSelectable>();
-        //MainSelectable.transform.FindChild("Col " + (char) ('A' + c)).GetComponent<KMSelectable>();
-        //MainSelectable.transform.FindChild("Square " + (char) ('A' + c) + (char) ('1' + r)).GetComponent<KMSelectable>()
-
-        var buttonlist = new List<KMSelectable>();
-        var buttons = string.Empty;
+        var buttons = new List<KMSelectable>();
+        string parameters = null;
 
         if (command.StartsWith("radar ", StringComparison.InvariantCultureIgnoreCase))
         {
-            buttonlist.Add(RadarButton);
-            buttons = command.Substring(6).ToUpperInvariant();
+            buttons.Add(RadarButton);
+            parameters = command.Substring(6).ToUpperInvariant();
         }
         else if (command.StartsWith("scan ", StringComparison.InvariantCultureIgnoreCase))
         {
-            buttonlist.Add(RadarButton);
-            buttons = command.Substring(5).ToUpperInvariant();
+            buttons.Add(RadarButton);
+            parameters = command.Substring(5).ToUpperInvariant();
         }
         else if (command.StartsWith("miss ", StringComparison.InvariantCultureIgnoreCase))
         {
-            buttonlist.Add(WaterButton);
-            buttons = command.Substring(5).ToUpperInvariant();
+            buttons.Add(WaterButton);
+            parameters = command.Substring(5).ToUpperInvariant();
         }
         else if (command.StartsWith("water ", StringComparison.InvariantCultureIgnoreCase))
         {
-            buttonlist.Add(WaterButton);
-            buttons = command.Substring(6).ToUpperInvariant();
+            buttons.Add(WaterButton);
+            parameters = command.Substring(6).ToUpperInvariant();
         }
         else if (command.StartsWith("hit ", StringComparison.InvariantCultureIgnoreCase))
         {
-            buttonlist.Add(TorpedoButton);
-            buttons = command.Substring(4).ToUpperInvariant();
+            buttons.Add(TorpedoButton);
+            parameters = command.Substring(4).ToUpperInvariant();
         }
         else if (command.StartsWith("torpedo ", StringComparison.InvariantCultureIgnoreCase))
         {
-            buttonlist.Add(TorpedoButton);
-            buttons = command.Substring(8).ToUpperInvariant();
+            buttons.Add(TorpedoButton);
+            parameters = command.Substring(8).ToUpperInvariant();
         }
         else if (command.StartsWith("row ", StringComparison.InvariantCultureIgnoreCase))
         {
-            command = command.Substring(4);
-            foreach (var r in command)
+            foreach (var r in command.Substring(4))
             {
-                if(r == '1' || r == '2' || r == '3' || r == '4' || r == '5')
-                    buttonlist.Add(MainSelectable.transform.FindChild("Row " + r).GetComponent<KMSelectable>());
+                if (r == ' ')
+                    continue;
+                if (r == '1' || r == '2' || r == '3' || r == '4' || r == '5')
+                    buttons.Add(MainSelectable.transform.FindChild("Row " + r).GetComponent<KMSelectable>());
+                else
+                    // Bail out completely if any one character is invalid.
+                    return null;
             }
         }
         else if (command.StartsWith("col ", StringComparison.InvariantCultureIgnoreCase))
         {
-            command = command.Substring(4);
-            foreach (var c in command.ToUpperInvariant())
+            foreach (var c in command.Substring(4).ToUpperInvariant())
             {
+                if (c == ' ')
+                    continue;
                 if (c == 'A' || c == 'B' || c == 'C' || c == 'D' || c == 'E')
-                    buttonlist.Add(MainSelectable.transform.FindChild("Col " + c).GetComponent<KMSelectable>());
+                    buttons.Add(MainSelectable.transform.FindChild("Col " + c).GetComponent<KMSelectable>());
+                else
+                    // Bail out completely if any one character is invalid.
+                    return null;
             }
         }
 
-        foreach (var cell in buttons.Split(new[] {" "}, StringSplitOptions.RemoveEmptyEntries))
+        if (parameters != null)
         {
-            if (cell.Length != 2) continue;
-            if (!"ABCDE".Contains(cell.Substring(0, 1))) continue;
-            if (!"12345".Contains(cell.Substring(1, 1))) continue;
-            buttonlist.Add(MainSelectable.transform.FindChild("Square " + cell).GetComponent<KMSelectable>());
+            foreach (var cell in parameters.Trim().Split(new[] { ' ' }, StringSplitOptions.RemoveEmptyEntries))
+            {
+                // Bail out completely if any one location is invalid.
+                if (cell.Length != 2 || !"ABCDE".Contains(cell[0]) || !"12345".Contains(cell[1]))
+                    return null;
+                buttons.Add(MainSelectable.transform.FindChild("Square " + cell).GetComponent<KMSelectable>());
+            }
         }
 
-        return buttonlist.Count > 0 ? buttonlist.ToArray() : null;
+        return buttons.Count > 0 ? buttons.ToArray() : null;
     }
 
     private void CheckSolved()
