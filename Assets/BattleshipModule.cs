@@ -274,11 +274,11 @@ public class BattleshipModule : MonoBehaviour
         if (_revealed[col][row])
             return;
         _revealed[col][row] = true;
-        UpdateRevealedGraphics();
+        UpdateRevealedGraphics(col, row);
         Audio.PlaySoundAtTransform(_solution[col][row] ? "Expl" + Rnd.Range(1, 16) : "Splash" + Rnd.Range(1, 9), MainSelectable.transform);
     }
 
-    private void UpdateRevealedGraphics()
+    private void UpdateRevealedGraphics(int? clickedCol = null, int? clickedRow = null)
     {
         for (int c = 0; c < 5; c++)
             for (int r = 0; r < 5; r++)
@@ -304,7 +304,8 @@ public class BattleshipModule : MonoBehaviour
                     waterLeft && waterAbove && waterRight && shipBelow ? "SqShipT" :
                     waterLeft && waterBelow && waterRight && shipAbove ? "SqShipB" :
                     waterBelow && waterAbove && shipLeft && shipRight ? "SqShipF" :
-                    waterLeft && waterRight && shipAbove && shipBelow ? "SqShipF" : "SqShip");
+                    waterLeft && waterRight && shipAbove && shipBelow ? "SqShipF" : "SqShip",
+                    clickedCol == c && clickedRow == r ? 0 : c + r);
             }
     }
 
@@ -684,7 +685,7 @@ public class BattleshipModule : MonoBehaviour
         }
     }
 
-    private void SetGraphic(int col, int row, string name)
+    private void SetGraphic(int col, int row, string name, int delay)
     {
         if (_graphics == null)
             _graphics = Ut.NewArray<GameObject>(5, 5);
@@ -695,15 +696,21 @@ public class BattleshipModule : MonoBehaviour
             return;
         _graphicNames[col][row] = name;
 
+        StartCoroutine(SetGraphicIterator(col, row, name, delay));
+    }
+
+    IEnumerator SetGraphicIterator(int col, int row, string name, int delay)
+    {
+        for (int i = delay * 2; i >= 0; i--)
+            yield return null;
+
         GameObject graphic;
         if (_graphics[col][row] == null)
         {
             graphic = _graphics[col][row] = Instantiate(Icon);
             graphic.name = "Icon " + (char) ('A' + col) + (char) ('1' + row);
             graphic.transform.parent = MainSelectable.transform;
-            graphic.transform.localPosition = new Vector3(col * 0.0192f - 0.0584f, 0.01401f, 0.0584f - row * 0.0192f);
             graphic.transform.localEulerAngles = new Vector3(0, 180, 0);
-            graphic.transform.localScale = new Vector3(0.00172f, 0.00172f, 0.00172f);
         }
         else
             graphic = _graphics[col][row];
@@ -711,5 +718,12 @@ public class BattleshipModule : MonoBehaviour
         var mr = graphic.GetComponent<MeshRenderer>();
         mr.material.mainTexture = _textures[name];
         mr.material.shader = Shader.Find("Unlit/Transparent");
+
+        for (int i = 5; i >= 0; i--)
+        {
+            graphic.transform.localPosition = new Vector3(col * 0.0192f - 0.0584f, 0.01401f + (.002f * i), 0.0584f - row * 0.0192f);
+            graphic.transform.localScale = new Vector3(0.00172f, 0.00172f, 0.00172f) * (100 + i) / 100f;
+            yield return null;
+        }
     }
 }
