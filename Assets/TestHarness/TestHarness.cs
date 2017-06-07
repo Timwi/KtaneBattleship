@@ -292,19 +292,14 @@ public class FakeBombInfo : MonoBehaviour
     {
         List<string> responses = new List<string>();
         if (queryKey == KMBombInfo.QUERYKEY_GET_SERIAL_NUMBER)
-        {
-            responses.Add(JsonConvert.SerializeObject((object) new Dictionary<string, string>()
-            {
-                {
-                    "serial", serial
-                }
-            }));
-        }
+            responses.Add(JsonConvert.SerializeObject(new Dictionary<string, string>() { { "serial", serial } }));
         foreach (Widget w in widgets)
         {
             string r = w.GetResult(queryKey, queryInfo);
             if (r != null) responses.Add(r);
         }
+        if (queryKey == "Unity")
+            responses.Add(JsonConvert.SerializeObject(new Dictionary<string, bool>() { { "Unity", true } }));
         return responses;
     }
 
@@ -740,12 +735,17 @@ public class TestHarness : MonoBehaviour
                 else if (currentObject is string)
                 {
                     Debug.Log("Twitch handler sent: " + currentObject);
+                    yield return currentObject;
                 }
                 else if (currentObject is Quaternion)
                 {
                     moduleTransform.localRotation = (Quaternion) currentObject;
                 }
-                yield return currentObject;
+                else
+                    yield return currentObject;
+
+                if (fakeInfo.strikes != initialStrikes || fakeInfo.GetSolvedModuleNames().Count != initialSolved)
+                    yield break;
             }
         }
     }
