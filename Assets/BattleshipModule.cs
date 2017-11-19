@@ -449,7 +449,7 @@ public class BattleshipModule : MonoBehaviour
             Module.HandlePass();
             return;
         }
-        var ships = new[] { Rnd.Range(3, 5), Rnd.Range(2, 4), Rnd.Range(1, 4), Rnd.Range(1, 3), Rnd.Range(0, 2) }.Where(x => x != 0).OrderByDescending(x => x).ToArray();
+        var ships = new[] { Rnd.Range(2, 5), Rnd.Range(2, 4), Rnd.Range(1, 4), Rnd.Range(1, 3), Rnd.Range(0, 2) }.Where(x => x != 0).OrderByDescending(x => x).ToArray();
         var anyHypothesis = false;
         var grid = Ut.NewArray(size, size, (x, y) => (bool?) null);
         _solution = null;
