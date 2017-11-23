@@ -19,6 +19,7 @@ public class BattleshipModule : MonoBehaviour
 
     public KMSelectable MainSelectable;
     public GameObject Icon;
+    public Texture[] Icons;
 
     public KMSelectable RadarButton, WaterButton, TorpedoButton;
     public MeshRenderer RadarButtonObject, WaterButtonObject, TorpedoButtonObject;
@@ -42,28 +43,18 @@ public class BattleshipModule : MonoBehaviour
     private static int _moduleIdCounter = 1;
     private int _moduleId;
 
-    private static Dictionary<string, Texture2D> _textures;
-
     void Start()
     {
         _moduleId = _moduleIdCounter++;
 
-        if (_textures == null)
-            _textures = RawPngs.RawBytes.ToDictionary(kvp => kvp.Key, kvp =>
-            {
-                var tex = new Texture2D(2, 2);
-                tex.LoadImage(kvp.Value);
-                return tex;
-            });
-
         for (int r = 0; r < 5; r++)
         {
-            SetRowHandler(MainSelectable.transform.FindChild("Row " + (char) ('1' + r)), r);
+            SetRowHandler(MainSelectable.transform.Find("Row " + (char) ('1' + r)), r);
             for (int c = 0; c < 5; c++)
-                SetCellHandler(MainSelectable.transform.FindChild("Square " + (char) ('A' + c) + (char) ('1' + r)).GetComponent<KMSelectable>(), c, r);
+                SetCellHandler(MainSelectable.transform.Find("Square " + (char) ('A' + c) + (char) ('1' + r)).GetComponent<KMSelectable>(), c, r);
         }
         for (int c = 0; c < 5; c++)
-            SetColHandler(MainSelectable.transform.FindChild("Col " + (char) ('A' + c)), c);
+            SetColHandler(MainSelectable.transform.Find("Col " + (char) ('A' + c)), c);
 
         _isSolved = false;
         _isExploded = false;
@@ -212,7 +203,7 @@ public class BattleshipModule : MonoBehaviour
                 if (r == ' ')
                     continue;
                 if (r == '1' || r == '2' || r == '3' || r == '4' || r == '5')
-                    buttons.Add(MainSelectable.transform.FindChild("Row " + r).GetComponent<KMSelectable>());
+                    buttons.Add(MainSelectable.transform.Find("Row " + r).GetComponent<KMSelectable>());
                 else
                     // Bail out completely if any one character is invalid.
                     return null;
@@ -225,7 +216,7 @@ public class BattleshipModule : MonoBehaviour
                 if (c == ' ')
                     continue;
                 if (c == 'A' || c == 'B' || c == 'C' || c == 'D' || c == 'E')
-                    buttons.Add(MainSelectable.transform.FindChild("Col " + c).GetComponent<KMSelectable>());
+                    buttons.Add(MainSelectable.transform.Find("Col " + c).GetComponent<KMSelectable>());
                 else
                     // Bail out completely if any one character is invalid.
                     return null;
@@ -239,7 +230,7 @@ public class BattleshipModule : MonoBehaviour
                 // Bail out completely if any one location is invalid.
                 if (cell.Length != 2 || !"ABCDE".Contains(cell[0]) || !"12345".Contains(cell[1]))
                     return null;
-                buttons.Add(MainSelectable.transform.FindChild("Square " + cell).GetComponent<KMSelectable>());
+                buttons.Add(MainSelectable.transform.Find("Square " + cell).GetComponent<KMSelectable>());
             }
         }
 
@@ -716,7 +707,7 @@ public class BattleshipModule : MonoBehaviour
             graphic = _graphics[col][row];
 
         var mr = graphic.GetComponent<MeshRenderer>();
-        mr.material.mainTexture = _textures[name];
+        mr.material.mainTexture = Icons.First(t => t.name == name);
         mr.material.shader = Shader.Find("Unlit/Transparent");
 
         for (int i = 5; i >= 0; i--)
