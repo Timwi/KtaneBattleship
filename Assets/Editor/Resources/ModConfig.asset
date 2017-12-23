@@ -13,5 +13,25 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   id: Battleship
   title: Battleship
+  description: "\u201CCaptain! Captain!\u201D exclaimed an exhausted voice, as a uniformed
+    man hurriedly entered the bridge.\r\n\r\n\u201CAt ease, Commander\u201D, the captain
+    said as he turned to face him. He had always felt that, while admirable, the first
+    officer seemed to take his responsibilities just a tad too seriously. \u201CWhat\u2019s
+    the matter?\u201D\r\n\r\n\u201CThe enemy hh\u2014\u201D The officer took a deeper
+    breath. \u201CThe enemy has organized a new attack fleet. Here\u2019s our new
+    orders we just received.\u201D He handed the captain a sheet of paper. \u201CWe
+    are instructed to strike as soon as we can infer the enemy\u2019s positions.\u201D\r\n\r\nThe
+    captain took the paper and scanned it intently. After a while, he commented on
+    it. \u201CThis is... our intelligence?\u201D\r\n\r\n\u201CI know, right?\u201D\r\n\r\n\u201CFive
+    by five grid... Horizontal or vertical...\u201D He looked pensive. \u201CWe need
+    to get a cadet to work out the logic of this. And then we gotta find a suitable
+    ensign to operate the torpedo.\u201D He handed the paper back to the officer.
+    \u201CFind the right hands for the job and begin training immediately.\u201D\r\n\r\n\u201CAye,
+    sir\u201D, the first officer responded with determination. His extended index
+    finger swaying side to side, he mumbled, \u201CI think I know just the right ones.\u201D\r\n\n\nModule
+    created by Timwi.\n\n[url=http://ktane.timwi.de/PDF/Battleship.pdf]Manual PDF[/url]\n[url=http://ktane.timwi.de/HTML/Battleship.html]Manual
+    HTML[/url]\n[b][url=https://www.youtube.com/watch?v=ds3lMTY-a-g]Tutorial video[/url]
+    (thanks Elias!)[/b]\r\n"
   version: 1.0
   outputFolder: build
+  previewImage: {fileID: 2800000, guid: bd5c1f4881f57d54481b44e4c8a7779a, type: 3}
