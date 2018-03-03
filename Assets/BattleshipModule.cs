@@ -687,13 +687,12 @@ public class BattleshipModule : MonoBehaviour
             return;
         _graphicNames[col][row] = name;
 
-        StartCoroutine(SetGraphicIterator(col, row, name, delay));
+        StartCoroutine(SetGraphicIterator(col, row, name, delay / 30f));
     }
 
-    IEnumerator SetGraphicIterator(int col, int row, string name, int delay)
+    IEnumerator SetGraphicIterator(int col, int row, string name, float delay)
     {
-        for (int i = delay * 2; i >= 0; i--)
-            yield return null;
+        yield return new WaitForSeconds(delay);
 
         GameObject graphic;
         if (_graphics[col][row] == null)
@@ -710,11 +709,17 @@ public class BattleshipModule : MonoBehaviour
         mr.material.mainTexture = Icons.First(t => t.name == name);
         mr.material.shader = Shader.Find("Unlit/Transparent");
 
-        for (int i = 5; i >= 0; i--)
+        var elapsed = 0f;
+        const float duration = .1f;
+        while (elapsed < duration)
         {
-            graphic.transform.localPosition = new Vector3(col * 0.0192f - 0.0584f, 0.01401f + (.002f * i), 0.0584f - row * 0.0192f);
-            graphic.transform.localScale = new Vector3(0.00172f, 0.00172f, 0.00172f) * (100 + i) / 100f;
             yield return null;
+            elapsed += Time.deltaTime;
+            var t = duration - elapsed;
+            graphic.transform.localPosition = new Vector3(col * 0.0192f - 0.0584f, 0.01401f + (.1f * t), 0.0584f - row * 0.0192f);
+            graphic.transform.localScale = new Vector3(0.00172f, 0.00172f, 0.00172f) * (100 + 50 * t) / 100f;
         }
+        graphic.transform.localPosition = new Vector3(col * 0.0192f - 0.0584f, 0.01401f, 0.0584f - row * 0.0192f);
+        graphic.transform.localScale = new Vector3(0.00172f, 0.00172f, 0.00172f);
     }
 }
