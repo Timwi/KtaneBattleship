@@ -161,6 +161,10 @@ public class BattleshipModule : MonoBehaviour
         };
     }
 
+#pragma warning disable 414
+    private string TwitchHelpMessage = @"Scan the safe spots with “!{0} radar A2 B3 E5”. Mark the spots as water with “!{0} water A1 A3 B4”. Mark the spots as ships with “!{0} torpedo E3 E4”. Fill in rows or columns with water with “!{0} row 3 4” or “!{0} col B D”.";
+#pragma warning restore 414
+
     KMSelectable[] ProcessTwitchCommand(string command)
     {
         var buttons = new List<KMSelectable>();
