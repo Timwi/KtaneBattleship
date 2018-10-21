@@ -492,7 +492,7 @@ public class BattleshipModule : MonoBehaviour
         var colCounts = Enumerable.Range(0, size).Select(col => Enumerable.Range(0, size).Count(row => grid[col][row] == true)).ToArray();
 
         // Now empty the grid again and see if we can deduce the solution uniquely.
-        grid = Ut.NewArray(size, size, (x, y) => _safeLocations.Contains(x + y * size) ? grid[x][y] : null);
+        grid = Ut.NewArray(size, size, (x, y) => _safeLocations.Contains(x + y * size) ? grid[x][y] == true : (bool?) null);
 
         var rowsDone = new bool[size];
         var colsDone = new bool[size];
