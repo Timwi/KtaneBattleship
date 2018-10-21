@@ -461,7 +461,7 @@ public class BattleshipModule : MonoBehaviour
                 var horiz = (i & 1) == 1;
                 var x = (i >> 1) % size;
                 var y = (i >> 1) / size;
-                if (horiz && x + shipLen >= size || !horiz && y + shipLen >= size)
+                if (horiz && x + shipLen > size || !horiz && y + shipLen > size)
                     return null;
                 for (int j = 0; j < shipLen; j++)
                     if (grid[horiz ? x + j : x][horiz ? y : y + j] != null)
