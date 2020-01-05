@@ -27,8 +27,8 @@ public class BattleshipModule : MonoBehaviour
     public Material RadarDark, WaterDark, TorpedoDark, RadarLight, WaterLight, TorpedoLight;
     public TextMesh[] ShipLengthLabels;
 
-    private TextMesh[] _columns = new TextMesh[5];
-    private TextMesh[] _rows = new TextMesh[5];
+    private readonly TextMesh[] _columns = new TextMesh[5];
+    private readonly TextMesh[] _rows = new TextMesh[5];
 
     private KMSelectable _selectedButton;
     private Transform _selectedButtonObject;
@@ -66,7 +66,7 @@ public class BattleshipModule : MonoBehaviour
         SetButtonHandler(WaterButton, WaterButtonObject, WaterLabel, WaterLight);
         SetButtonHandler(TorpedoButton, TorpedoButtonObject, TorpedoLabel, TorpedoLight);
 
-        Module.OnActivate = GeneratePuzzle;
+        StartCoroutine(GeneratePuzzle());
         Bomb.OnBombExploded = delegate { _isExploded = true; };
     }
 
@@ -361,8 +361,10 @@ public class BattleshipModule : MonoBehaviour
         _buttonCoroutine = null;
     }
 
-    void GeneratePuzzle()
+    IEnumerator GeneratePuzzle()
     {
+        yield return null;
+
         const int size = 5;
 
         // What are the safe locations?
@@ -442,7 +444,7 @@ public class BattleshipModule : MonoBehaviour
         {
             Debug.LogFormat("[Battleship #{0}] Could not generate puzzle. Giving up.", _moduleId);
             Module.HandlePass();
-            return;
+            yield break;
         }
         var ships = new[] { Rnd.Range(2, 5), Rnd.Range(2, 4), Rnd.Range(1, 4), Rnd.Range(1, 3), Rnd.Range(0, 2) }.Where(x => x != 0).OrderByDescending(x => x).ToArray();
         var anyHypothesis = false;
