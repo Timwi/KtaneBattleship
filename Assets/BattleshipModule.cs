@@ -728,4 +728,21 @@ public class BattleshipModule : MonoBehaviour
         graphic.transform.localPosition = new Vector3(col * 0.0192f - 0.0584f, 0.01401f, 0.0584f - row * 0.0192f);
         graphic.transform.localScale = new Vector3(0.00172f, 0.00172f, 0.00172f);
     }
+
+    IEnumerator TwitchHandleForcedSolve()
+    {
+        if (_selectedButton != TorpedoButton)
+        {
+            TorpedoButton.OnInteract();
+            yield return new WaitForSeconds(.5f);
+        }
+
+        for (var row = 0; row < 5; row++)
+            for (var col = 0; col < 5; col++)
+                if (_solution[col][row] && !_revealed[col][row])
+                {
+                    MainSelectable.transform.Find("Square " + (char) ('A' + col) + (char) ('1' + row)).GetComponent<KMSelectable>().OnInteract();
+                    yield return new WaitForSeconds(.1f);
+                }
+    }
 }
